@@ -4,6 +4,8 @@ import { SLAMCanvas } from '../Viewports/SLAMCanvas';
 import { VideoFeed } from '../Viewports/VideoFeed';
 import { Sidebar } from '../Telemetry/Sidebar';
 import { ConfigPanel } from '../Controls/ConfigPanel';
+import { VirtualJoystick } from '../Controls/VirtualJoystick';
+import { EmergencyStop } from '../Controls/EmergencyStop';
 import './MissionLayout.css';
 
 export const MissionLayout = () => {
@@ -42,6 +44,13 @@ export const MissionLayout = () => {
 
             <main className="mission-main">
                 <SLAMCanvas />
+
+                {/* HUD Overlays */}
+                <div style={{ position: 'absolute', bottom: '2rem', left: '2rem', zIndex: 20 }}>
+                    <VirtualJoystick />
+                </div>
+
+                <EmergencyStop />
             </main>
 
             <aside className="mission-sidebar">

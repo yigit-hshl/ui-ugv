@@ -12,6 +12,8 @@ class TelemetryStore {
             imu: { roll: 0, pitch: 0, yaw: 0 },
             odometry: { x: 0, y: 0, z: 0, vx: 0, vy: 0, vz: 0 },
             battery: { voltage: 0, current: 0, percentage: 0 },
+            path: [], // Array of {x, y, z}
+            occupancyGrid: null, // Float32Array or similar
             status: 'DISCONNECTED', // CONNECTED, ERROR
             latency: 0,
         };
@@ -77,6 +79,22 @@ export const startMockTelemetry = () => {
     console.log('[TelemetryStore] Starting mock data stream at 50Hz');
 
     let t = 0;
+    const pathHistory = [];
+
+    // Generate static occupancy grid once
+    const gridSize = 100;
+    const gridData = new Float32Array(gridSize * gridSize);
+    for (let i = 0; i < gridData.length; i++) {
+        // Simple Perlin-ish noise or random blocks
+        gridData[i] = Math.random() > 0.8 ? 1 : 0;
+    }
+    // Clear center for robot
+    for (let x = 40; x < 60; x++) {
+        for (let y = 40; y < 60; y++) {
+            gridData[x + y * gridSize] = 0;
+        }
+    }
+
     mockInterval = setInterval(() => {
         t += 0.02; // 50Hz
 
@@ -85,13 +103,18 @@ export const startMockTelemetry = () => {
         const pitch = Math.cos(t * 0.3) * 0.1;
         const yaw = t * 0.1;
 
+        const x = Math.cos(t * 0.1) * 5;
+        const y = Math.sin(t * 0.1) * 5;
+
+        // Update Path (limit to last 1000 points)
+        if (pathHistory.length > 1000) pathHistory.shift();
+        pathHistory.push({ x, y, z: 0 });
+
         telemetryStore.update({
             imu: { roll, pitch, yaw },
-            odometry: {
-                x: Math.cos(t * 0.1) * 5,
-                y: Math.sin(t * 0.1) * 5,
-                z: 0
-            },
+            odometry: { x, y, z: 0 },
+            path: [...pathHistory], // Create new reference
+            occupancyGrid: t < 0.1 ? gridData : undefined, // Send once initially (or optimize to send delta)
             battery: {
                 voltage: 24.5 + Math.random() * 0.1,
                 percentage: 85 - (t * 0.1),

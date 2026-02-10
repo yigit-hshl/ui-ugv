@@ -1,11 +1,40 @@
-import React, { useState, useEffect } from 'react';
-import { Wifi, Battery, Radio } from 'lucide-react';
+import React, { useState, useEffect, useRef } from 'react';
+import { Wifi, Radio, AlertCircle, RefreshCw } from 'lucide-react';
+import { HUDOverlay } from './HUDOverlay';
 
 export const VideoFeed = () => {
+    const videoRef = useRef();
+    const [status, setStatus] = useState('CONNECTED'); // CONNECTED, RECONNECTING, ERROR
     const [latency, setLatency] = useState(24);
     const [bitrate, setBitrate] = useState(4.2);
 
-    // Simulate network fluctuation
+    // Simulate Stream Reconnection Logic
+    useEffect(() => {
+        let stuckTimer;
+
+        const checkStream = () => {
+            // In a real app, we check if video.currentTime is advancing
+            // For now, we simulate a random connection drop
+            if (Math.random() > 0.995 && status === 'CONNECTED') {
+                triggerReconnect();
+            }
+        };
+
+        const triggerReconnect = () => {
+            setStatus('RECONNECTING');
+            console.warn('[VideoFeed] Stream Connection Lost. Attempting Reconnect...');
+
+            setTimeout(() => {
+                setStatus('CONNECTED');
+                console.log('[VideoFeed] Stream Reconnected.');
+            }, 2000);
+        };
+
+        const interval = setInterval(checkStream, 100);
+        return () => clearInterval(interval);
+    }, [status]);
+
+    // Simulate network stats
     useEffect(() => {
         const interval = setInterval(() => {
             setLatency(prev => Math.max(10, Math.min(100, prev + (Math.random() - 0.5) * 10)));
@@ -25,54 +54,71 @@ export const VideoFeed = () => {
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            {/* Simulated Noise/Feed */}
-            <div style={{
-                width: '100%',
-                height: '100%',
-                background: 'radial-gradient(circle, #222 0%, #000 100%)',
-                opacity: 0.8,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: '#444',
-                fontFamily: 'monospace',
-                fontSize: '0.8rem'
-            }}>
-                [VIDEO STREAM SIGNAL LOST]
-            </div>
+            {/* Video Element (Mock Source) */}
+            <video
+                ref={videoRef}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }}
+                autoPlay
+                muted
+                loop
+                playsInline
+            >
+                {/* 
+                    Ideally this would be a WebRTC stream or HLS source.
+                    For now using a reliable placeholder that looks "techy" or just noise 
+                    Since we can't fetch external URLs easily without setup, we stick to the CSS gradient fallback 
+                    if no source is provided, effectively 'hiding' this video tag and showing the background below.
+                */}
+            </video>
 
-            {/* Overlay UI */}
+            {/* Signal Noise Background (Visible if video fails or acts as underlay) */}
+            <div style={{
+                position: 'absolute', inset: 0,
+                background: 'radial-gradient(circle, #222 0%, #000 100%)',
+                zIndex: -1
+            }} />
+
+            {/* HUD Layer */}
+            <HUDOverlay />
+
+            {/* Status Overlay */}
+            {status === 'RECONNECTING' && (
+                <div style={{
+                    position: 'absolute', inset: 0,
+                    background: 'rgba(0,0,0,0.8)',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                    color: 'var(--color-warning)', zIndex: 50
+                }}>
+                    <RefreshCw className="spin" size={48} style={{ marginBottom: '1rem' }} />
+                    <div style={{ fontFamily: 'monospace', fontWeight: 'bold' }}>SIGNAL LOST</div>
+                    <div style={{ fontSize: '0.8rem' }}>ATTEMPTING RECONNECTION...</div>
+                </div>
+            )}
+
+            {/* Info Bar */}
             <div style={{
                 position: 'absolute',
-                top: 0,
-                left: 0,
-                width: '100%',
+                top: 0, left: 0, width: '100%',
                 padding: '8px',
-                display: 'flex',
-                justifyContent: 'space-between',
-                background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)'
+                display: 'flex', justifyContent: 'space-between',
+                background: 'linear-gradient(to bottom, rgba(0,0,0,0.8), transparent)',
+                zIndex: 10
             }}>
                 <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                     <span style={{
-                        color: 'var(--color-danger)',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem',
-                        display: 'flex',
-                        alignItems: 'center',
-                        gap: '4px'
+                        color: status === 'CONNECTED' ? 'var(--color-danger)' : '#666',
+                        fontWeight: 'bold', fontSize: '0.8rem',
+                        display: 'flex', alignItems: 'center', gap: '4px'
                     }}>
-                        <span style={{
-                            width: '8px',
-                            height: '8px',
-                            background: 'var(--color-danger)',
+                        <div style={{
+                            width: '8px', height: '8px',
+                            background: status === 'CONNECTED' ? 'var(--color-danger)' : '#666',
                             borderRadius: '50%',
-                            boxShadow: '0 0 5px var(--color-danger)'
+                            boxShadow: status === 'CONNECTED' ? '0 0 5px var(--color-danger)' : 'none'
                         }} />
                         REC
                     </span>
-                    <span style={{ color: '#fff', fontSize: '0.8rem', fontFamily: 'monospace' }}>
-                        CAM_01
-                    </span>
+                    <span style={{ color: '#fff', fontSize: '0.8rem', fontFamily: 'monospace' }}>CAM_01</span>
                 </div>
 
                 <div style={{ display: 'flex', gap: '12px', color: 'var(--color-primary)', fontSize: '0.8rem', fontFamily: 'monospace' }}>
@@ -85,19 +131,10 @@ export const VideoFeed = () => {
                 </div>
             </div>
 
-            {/* Crosshair */}
-            <div style={{
-                position: 'absolute',
-                top: '50%',
-                left: '50%',
-                width: '20px',
-                height: '20px',
-                border: '1px solid rgba(0, 210, 255, 0.3)',
-                transform: 'translate(-50%, -50%)',
-                pointerEvents: 'none'
-            }}>
-                <div style={{ position: 'absolute', top: '50%', left: '50%', width: '4px', height: '4px', background: 'rgba(0, 210, 255, 0.5)', transform: 'translate(-50%, -50%)' }} />
-            </div>
+            <style>{`
+                .spin { animation: spin 1s linear infinite; }
+                @keyframes spin { 100% { transform: rotate(360deg); } }
+            `}</style>
         </div>
     );
 };

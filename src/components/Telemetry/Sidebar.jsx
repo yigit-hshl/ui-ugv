@@ -82,7 +82,7 @@ export const Sidebar = () => {
     }, []);
 
     return (
-        <div style={{ padding: '1rem', color: 'var(--color-text-main)', height: '100%', overflowY: 'auto' }}>
+        <div style={{ padding: '1rem', color: 'var(--color-text-main)' }}>
 
             {/* IMU WIDGET */}
             <Widget title="INERTIAL MEASUREMENT" icon={Compass}>

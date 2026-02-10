@@ -4,10 +4,13 @@
         "header header"
         "main sidebar";
     grid-template-columns: 1fr 320px;
-    grid-template-rows: 48px 1fr;
+    grid-template-rows: 48px minmax(0, 1fr);
+    /* prevent row blowout */
     height: 100vh;
     width: 100vw;
     background: radial-gradient(circle at center, #1a1c29 0%, #050508 100%);
+    overflow: hidden;
+    /* Ensure global containment */
 }
 
 .mission-header {
