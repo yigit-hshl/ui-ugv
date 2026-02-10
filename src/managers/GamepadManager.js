@@ -1,16 +1,30 @@
+import ROSLIB from 'roslib';
 import { controlStore } from '../stores/ControlStore';
+import { telemetryStore } from '../stores/TelemetryStore';
 
 /**
  * GamepadManager
  * 
  * Polls the Gamepad API and updates the ControlStore.
- * Implements dead-zone and axis mapping.
+ * Publishes /cmd_vel to ROS.
  */
 class GamepadManager {
     constructor() {
         this.pollingInterval = null;
         this.gamepadIndex = null;
         this.deadzone = 0.1;
+        this.cmdVelTopic = null;
+    }
+
+    getCmdVelTopic() {
+        if (!this.cmdVelTopic && telemetryStore.ros) {
+            this.cmdVelTopic = new ROSLIB.Topic({
+                ros: telemetryStore.ros,
+                name: '/cmd_vel',
+                messageType: 'geometry_msgs/Twist'
+            });
+        }
+        return this.cmdVelTopic;
     }
 
     start() {
@@ -75,13 +89,23 @@ class GamepadManager {
         if (Math.abs(linear) < this.deadzone) linear = 0;
         if (Math.abs(angular) < this.deadzone) angular = 0;
 
-        // Only update if input is detected to avoid overriding other controls
+        // Update Store
         if (Math.abs(linear) > 0 || Math.abs(angular) > 0) {
             controlStore.update({
                 linear,
                 angular,
                 activeInput: 'GAMEPAD'
             });
+
+            // Publish to ROS
+            const topic = this.getCmdVelTopic();
+            if (topic) {
+                const twist = new ROSLIB.Message({
+                    linear: { x: linear * 2.0, y: 0, z: 0 }, // Scale max speed
+                    angular: { x: 0, y: 0, z: angular * 2.0 }
+                });
+                topic.publish(twist);
+            }
         }
     }
 }

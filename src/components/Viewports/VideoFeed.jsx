@@ -54,22 +54,18 @@ export const VideoFeed = () => {
             alignItems: 'center',
             justifyContent: 'center'
         }}>
-            {/* Video Element (Mock Source) */}
-            <video
+            {/* Video Element (MJPEG Stream) */}
+            <img
                 ref={videoRef}
-                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 0.6 }}
-                autoPlay
-                muted
-                loop
-                playsInline
-            >
-                {/* 
-                    Ideally this would be a WebRTC stream or HLS source.
-                    For now using a reliable placeholder that looks "techy" or just noise 
-                    Since we can't fetch external URLs easily without setup, we stick to the CSS gradient fallback 
-                    if no source is provided, effectively 'hiding' this video tag and showing the background below.
-                */}
-            </video>
+                style={{ width: '100%', height: '100%', objectFit: 'cover', opacity: 1.0 }}
+                src="http://localhost:8080/stream?topic=/color/image&type=mjpeg"
+                alt="Video Stream"
+                onError={(e) => {
+                    e.target.style.display = 'none'; // Hide if fails
+                    setStatus('RECONNECTING');
+                }}
+                onLoad={() => setStatus('CONNECTED')}
+            />
 
             {/* Signal Noise Background (Visible if video fails or acts as underlay) */}
             <div style={{
